@@ -1,97 +1,49 @@
 const express = require('express');
 const Router = express.Router();
-const checkCache = require('../middlewares/checkRedisCache');
-const checkTorrentCache = require('../middlewares/checkTorrentCache')
-
-const redis = require('redis');
-const port_redis = process.env.PORT || 6379;
-const redis_client = redis.createClient(port_redis);
-
-// Site Scrapers
 const { scrape1337x, get1337Magnet } = require('../helpers/_1337Scraper');
 const nyaaSiScraper = require('../helpers/nyaaSiScraper');
 
-Router.get('/', checkCache, async (req, res) => {
+Router.get('/', async (req, res) => {
+    let allTorrents = []
+    let { searchTerm, category } = req.query;
 
+    let _1337xURL = category === undefined ? `https://1337x.to/search/${searchTerm}/1/` : `https://1337x.to/category-search/${searchTerm}/${category}/1/`;
+    let nyaaSiURL = `https://nyaa.si/?f=0&c=0_0&q=${searchTerm}&s=seeders&o=desc`;
+    const [_1337Torrents, nyaaSiTorrents] = await Promise.all([scrape1337x(_1337xURL), nyaaSiScraper(nyaaSiURL)]);
+    allTorrents.push({
+        site: '1337x.to',
+        name: '1337x',
+        torrents: _1337Torrents
+    }, {
+        site: 'nyaa.si',
+        name: 'Nyaa.si',
+        torrents: nyaaSiTorrents
+    });
 
-    try {
-        let allTorrents = []
-        let { searchTerm, category } = req.query;
-
-        let _1337xURL = category === undefined ? `https://1337x.to/search/${searchTerm}/1/` : `https://1337x.to/category-search/${searchTerm}/${category}/1/`;
-        // let pirateBayURL = `https://www.pirate-bay.net/search?q=${searchTerm}`;
-        let nyaaSiURL = `https://nyaa.si/?f=0&c=0_0&q=${searchTerm}&s=seeders&o=desc`;
-        const [_1337Torrents, nyaaSiTorrents] = await Promise.all([scrape1337x(_1337xURL), nyaaSiScraper(nyaaSiURL)]);
-
-
-        // const _1337Torrents = await scrape1337x(_1337xURL);
-        // const nyaaSiTorrents = await nyaaSiScraper(nyaaSiURL);
-
-        // TODO this only returns all magnets right now. Make it so that it returns torrent details along with the magnet
-        // const results = await promisesArray(_1337Torrents);
-
-
-        allTorrents.push({
-            site: '1337x.to',
-            name: '1337x',
-            torrents: _1337Torrents
-        }, {
-            site: 'nyaa.si',
-            name: 'Nyaa.si',
-            torrents: nyaaSiTorrents
-        });
-
-
-        // add data to Redis. Cache it for 1s
-        redis_client.setex(searchTerm.toLowerCase(), 1, JSON.stringify(allTorrents));
-
-        return res.send({
-            error: false,
-            cached: false,
-            payload: allTorrents
-        })
-
-    } catch (error) {
-        console.log(error);
-        return res.send({
-            error: true,
-            message: "Please try again later",
-            payload: []
-        })
+    if (_1337Torrents.length === 0) {
+        throw new Error("No torrents found")
     }
+    return res.send({
+        error: false,
+        cached: false,
+        payload: allTorrents
+    })
 });
 
-Router.get('/torrent', checkTorrentCache, async (req, res) => {
+Router.get('/torrent', async (req, res) => {
     let torrents = [];
-    try {
-        const { url, torrentSource } = req.query;
+    const { url, torrentSource } = req.query;
+    torrents = await get1337Magnet(url);
+    return res.send({
+        error: false,
+        cached: false,
+        payload: {
+            torrents,
+            actualTorrent: true,
+            torrentSource
+        }
 
-        torrents = await get1337Magnet(url);
-
-
-        // add data to Redis. Cache it for 1s
-        redis_client.setex(url.toLowerCase(), 1, JSON.stringify(torrents));
-
-
-        return res.send({
-            error: false,
-            cached: false,
-            payload: {
-                torrents,
-                actualTorrent: true,
-                torrentSource
-            }
-
-        })
-
-    } catch (error) {
-        console.log(error)
-        return res.send({
-            error: true,
-            message: "Something went wrong. Please try again later",
-            payload: []
-        })
-    }
+    })
 })
 
 
