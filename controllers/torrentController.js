@@ -2,8 +2,9 @@ const express = require('express');
 const Router = express.Router();
 const { scrape1337x, get1337Magnet } = require('../helpers/_1337Scraper');
 const nyaaSiScraper = require('../helpers/nyaaSiScraper');
+const asyncHandler = require('../helpers/asyncHandler');
 
-Router.get('/', async (req, res) => {
+Router.get('/', asyncHandler(async (req, res) => {
     let allTorrents = []
     let { searchTerm, category } = req.query;
 
@@ -28,9 +29,9 @@ Router.get('/', async (req, res) => {
         cached: false,
         payload: allTorrents
     })
-});
+}));
 
-Router.get('/torrent', async (req, res) => {
+Router.get('/torrent', asyncHandler(async (req, res) => {
     let torrents = [];
     const { url, torrentSource } = req.query;
     torrents = await get1337Magnet(url);
@@ -44,7 +45,7 @@ Router.get('/torrent', async (req, res) => {
         }
 
     })
-})
+}))
 
 
 module.exports = Router;

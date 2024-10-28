@@ -2,8 +2,9 @@ const express = require('express');
 const Router = express.Router();
 const _1337FeedsProvider = require('../helpers/feed/_1337xFeed');
 const nyaasiFeedsProvider = require('../helpers/feed/nyaasiFeed');
+const asyncHandler = require('../helpers/asyncHandler');
 
-Router.get("/", async (req, res) => {
+Router.get("/", asyncHandler(async (req, res) => {
     const _1337xFeeds = await _1337FeedsProvider();
     const nyaasiFeeds = await nyaasiFeedsProvider();
 
@@ -17,7 +18,7 @@ Router.get("/", async (req, res) => {
         payload: feeds
     });
 
-})
+}))
 
 
 module.exports = Router;
