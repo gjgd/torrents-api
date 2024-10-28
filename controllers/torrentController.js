@@ -8,11 +8,8 @@ const port_redis = process.env.PORT || 6379;
 const redis_client = redis.createClient(port_redis);
 
 // Site Scrapers
-const { promisesArray, scrape1337x, get1337Magnet } = require('../helpers/_1337Scraper');
+const { scrape1337x, get1337Magnet } = require('../helpers/_1337Scraper');
 const nyaaSiScraper = require('../helpers/nyaaSiScraper');
-const { scrapeYTS, scrapeYTSLink } = require('../helpers/ytsScraper');
-
-
 
 Router.get('/', checkCache, async (req, res) => {
 
@@ -24,14 +21,11 @@ Router.get('/', checkCache, async (req, res) => {
         let _1337xURL = category === undefined ? `https://1337x.to/search/${searchTerm}/1/` : `https://1337x.to/category-search/${searchTerm}/${category}/1/`;
         // let pirateBayURL = `https://www.pirate-bay.net/search?q=${searchTerm}`;
         let nyaaSiURL = `https://nyaa.si/?f=0&c=0_0&q=${searchTerm}&s=seeders&o=desc`;
-        let ytsURL = `https://yts.ms/browse-movies/${searchTerm}/all/all/0/seeds`;
-
-        const [_1337Torrents, nyaaSiTorrents, ytsTorrents] = await Promise.all([scrape1337x(_1337xURL), nyaaSiScraper(nyaaSiURL), scrapeYTS(ytsURL)]);
+        const [_1337Torrents, nyaaSiTorrents] = await Promise.all([scrape1337x(_1337xURL), nyaaSiScraper(nyaaSiURL)]);
 
 
         // const _1337Torrents = await scrape1337x(_1337xURL);
         // const nyaaSiTorrents = await nyaaSiScraper(nyaaSiURL);
-        // const ytsTorrents = await scrapeYTS(ytsURL);
 
         // TODO this only returns all magnets right now. Make it so that it returns torrent details along with the magnet
         // const results = await promisesArray(_1337Torrents);
@@ -45,10 +39,6 @@ Router.get('/', checkCache, async (req, res) => {
             site: 'nyaa.si',
             name: 'Nyaa.si',
             torrents: nyaaSiTorrents
-        }, {
-            site: 'yts.ms',
-            name: 'YTS',
-            torrents: ytsTorrents
         });
 
 
@@ -76,7 +66,7 @@ Router.get('/torrent', checkTorrentCache, async (req, res) => {
     try {
         const { url, torrentSource } = req.query;
 
-        torrents = torrentSource === 'YTS' ? await scrapeYTSLink(url) : await get1337Magnet(url);
+        torrents = await get1337Magnet(url);
 
 
         redis_client.setex(url.toLowerCase(), 3600, JSON.stringify(torrents));

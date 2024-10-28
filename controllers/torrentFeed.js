@@ -9,7 +9,6 @@ const checkFeedCache = require('../middlewares/checkFeedCache');
 
 // Torrent Providers Feeds
 const _1337FeedsProvider = require('../helpers/feed/_1337xFeed');
-const ytsFeedsProvider = require('../helpers/feed/ytsFeed');
 const nyaasiFeedsProvider = require('../helpers/feed/nyaasiFeed');
 
 Router.get("/", checkFeedCache, async (req, res) => {
@@ -17,11 +16,10 @@ Router.get("/", checkFeedCache, async (req, res) => {
     try {
 
         const _1337xFeeds = await _1337FeedsProvider();
-        const ytsFeeds = await ytsFeedsProvider();
         const nyaasiFeeds = await nyaasiFeedsProvider();
 
         const feeds = {
-            _1337xFeeds, ytsFeeds, nyaasiFeeds, lastRefreshed: Date.now()
+            _1337xFeeds, nyaasiFeeds, lastRefreshed: Date.now()
         }
 
         // Cache the feeds for all providers for, say, 24 hrs
