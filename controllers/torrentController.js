@@ -42,8 +42,8 @@ Router.get('/', checkCache, async (req, res) => {
         });
 
 
-        // //add data to Redis. Cache it for 2 hours | 7200s
-        redis_client.setex(searchTerm.toLowerCase(), 7200, JSON.stringify(allTorrents));
+        // add data to Redis. Cache it for 1s
+        redis_client.setex(searchTerm.toLowerCase(), 1, JSON.stringify(allTorrents));
 
         return res.send({
             error: false,
@@ -69,7 +69,8 @@ Router.get('/torrent', checkTorrentCache, async (req, res) => {
         torrents = await get1337Magnet(url);
 
 
-        redis_client.setex(url.toLowerCase(), 3600, JSON.stringify(torrents));
+        // add data to Redis. Cache it for 1s
+        redis_client.setex(url.toLowerCase(), 1, JSON.stringify(torrents));
 
 
         return res.send({
